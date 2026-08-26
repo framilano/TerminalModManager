@@ -13,7 +13,7 @@ def load_games_setup():
         system('echo "[]" > \"' + json_path + '\"')
         print("Created games_setup.json file")
         return
-    f = open("games_setup.json", "r")
+    f = open(json_path, "r")
     links = load(f)
     f.close()
     
@@ -199,7 +199,9 @@ def add_new_game():
         "mods_path": mods_path
     })
 
-    f = open("games_setup.json", "w")
+    base_path = path.dirname(path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
+    json_path = base_path + "/games_setup.json"
+    f = open(json_path, "w")
     dump(games_setup, f, indent=4)
     f.close()
 
