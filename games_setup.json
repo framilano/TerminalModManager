@@ -2,7 +2,7 @@
     {
         "name": "Bloodborne ShadPS4 Mods",
         "gameroot_path": "/home/francesco/Games/EmulationLibrary/ROMs/ps4/CUSA03173/dvdroot_ps4",
-        "backup_path": "/home/francesco/Games/EmulationLibrary/ROMs/ps4/CUSA03173-backup/dvdroot_ps4",
+        "backup_path": "/home/francesco/Games/EmulationLibrary/ROMs/ps4/CUSA03173-backup",
         "mods_path": "/home/francesco/Games/EmulationLibrary/ROMs/ps4/CUSA03173-mods"
     }
 ]
