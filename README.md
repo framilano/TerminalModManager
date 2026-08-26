@@ -1,10 +1,12 @@
 # TerminalModManager
 A no-nonsense mod manager written in Python, CLI and Linux only currently.
 
-Use case was BBLauncher conflicting with Shadnet Bloodborne network code and BBLauncher was the only mod manager available for it, I just wanted the mod manager.
-Please backup your files before using this tool, I programmed it in like 3 hours.
+Use Linux symlinking to put mods inside a game folder without actually moving files, you can disable/restore original files automatically without having to save/backup them manually.
 
-# Configuration
+My main use case was [BBLauncher](https://github.com/rainmakerv3/BB_Launcher) conflicting with Shadnet Bloodborne network code and BBLauncher was the only mod manager available for this game, now I can use ShadPS4 with my mod manager.
+Please backup your game files anyway before using this tool, I programmed it in like 3 hours.
+
+## Configuration
 Create a file called `games_setup.json` (or use the one I provide, or just create a new one using the program itself, there's a small wizard to help adding new games), this json contains a list of games you want to handle, for Bloodborne on shadPS4 this is the content of `games_setup.json`
 
 ```
@@ -23,7 +25,7 @@ Create a file called `games_setup.json` (or use the one I provide, or just creat
 - **backup_path**: this is a backup folder you choose, every symlinking that overwrites existing game files will first save the original file in this folder
 - **mods_path**: this is your mods folder, put your mods folders here, each mod will have a separate folder contained in mods_path
 
-# Example
+## Example
 The main use case here is Bloodborne PC, but you can easily extend this tool behaviour for every game.
 
 Let's say `mods_path` is `/home/francesco/Games/EmulationLibrary/ROMs/ps4/CUSA03173-mods` and it contains:
