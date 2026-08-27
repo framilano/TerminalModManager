@@ -3,7 +3,7 @@ A no-nonsense mod manager written in Python, only through CLI and Linux currentl
 
 Use Linux symlinking to put mods inside a game folder without actually moving files, you can disable/restore original files automatically without having to save/backup them manually.
 
-My main use case was [BBLauncher](https://github.com/rainmakerv3/BB_Launcher) conflicting with Shadnet Bloodborne network code and BBLauncher was the only mod manager available for this game, now I can use ShadPS4 with my mod manager.
+My main use case was [BBLauncher](https://github.com/rainmakerv3/BB_Launcher) conflicting with Shadnet Bloodborne network code and BBLauncher was the only mod manager available for that game, instead of searching for another mod manager I decided to create my own.
 Please backup your game files anyway before using this tool, I programmed it in like 3 hours.
 
 ## Configuration
