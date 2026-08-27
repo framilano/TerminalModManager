@@ -1,5 +1,5 @@
 # TerminalModManager
-A no-nonsense mod manager written in Python, CLI and Linux only currently.
+A no-nonsense mod manager written in Python, only through CLI and Linux currently.
 
 Use Linux symlinking to put mods inside a game folder without actually moving files, you can disable/restore original files automatically without having to save/backup them manually.
 
