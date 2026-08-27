@@ -36,15 +36,9 @@ Now these folders content will be symlinked using as root folder the `gameroot_p
 The CLI allows you enable/disable specific mods, the prompt will show you:
 
 ```
-0 ❌: BBEnhanced
-1 ❌: Bloodborne Boss Arena (Sandbox 1.0.3)
-2 ❌: Elden Ring Style - Modern Xbox prompts
 3 ❌: Hidden AA - (WARNING - This disabled mod has some conflicting files with other enabled mods, enabling it will overwrite the previous linking)
-4 ✅: MOAL
 5 ✅: Nightreign AA Drawparams darker
-6 ✅: Pointlight Removal (fixes excessive brightness)
-7 ✅: Vertex Explosion fix - modloader friendly
 Select which mods to edit (example: 0 2 4, or -1 for all of them) and press Enter: 
 ```
 
-As you can see ❌ means the mod is not symlinked (disabled), ✅ means the mod is symlinked (enabled). I even added an alert to check if enabling specific disabled mods will conflict other enabled mods. In this case `Hidden AA` could cause conflicts with `Nightreign AA Drawparam darker`.
+As you can see ❌ means the mod is not symlinked (disabled), ✅ means the mod is symlinked (enabled). I even added an alert to check if enabling specific disabled mods will conflict with other enabled mods. In this case `Hidden AA` has conflicts with `Nightreign AA Drawparam darker`.
