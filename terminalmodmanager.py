@@ -1,6 +1,7 @@
 from json import dump, load
-from os import path, system, listdir, readlink
+from os import path, listdir, readlink
 import sys
+import subprocess
 
 def load_games_setup():
     """
@@ -8,20 +9,20 @@ def load_games_setup():
     @return: the list of game setups
     """
     base_path = path.dirname(path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
-    json_path = base_path + "/games_setup.json"
+    json_path = path.join(base_path, "games_setup.json")
     if (not path.exists(json_path)): 
-        system('echo "[]" > \"' + json_path + '\"')
+        with open(json_path, "w") as f:
+            f.write("[]\n")
         print("Created games_setup.json file")
         return
-    f = open(json_path, "r")
-    links = load(f)
-    f.close()
+    with open(json_path, "r") as f:
+        links = load(f)
     
     # Removing trailing slashes from paths
     for mod in links:
-        if (mod["gameroot_path"][-1] == '/'): mod["gameroot_path"] = mod["gameroot_path"][:-1]
-        if (mod["backup_path"][-1] == '/'): mod["backup_path"] = mod["backup_path"][:-1]
-        if (mod["mods_path"][-1] == '/'): mod["mods_path"] = mod["mods_path"][:-1]
+        if (mod["gameroot_path"].endswith('/')): mod["gameroot_path"] = mod["gameroot_path"][:-1]
+        if (mod["backup_path"].endswith('/')): mod["backup_path"] = mod["backup_path"][:-1]
+        if (mod["mods_path"].endswith('/')): mod["mods_path"] = mod["mods_path"][:-1]
     
     return links
 
@@ -33,31 +34,25 @@ def link_files_recursively(gameroot_path, backup_path, mod_root, current_root):
     @param mod_root: this is the mod folder path being linked
     @param current_root: this is the current subfolder of the mod being processed
     """
-    for filename in listdir(mod_root + current_root):
-        
-        mod_subpath = current_root + "/"
-        mod_file_subpath = mod_subpath + filename
-        mod_file_abs_path = mod_root + mod_file_subpath
-        
-        #print("Checking: ", mod_file_abs_path)
-        if (path.isfile(mod_file_abs_path)):
-            
-            vanilla_file_path = gameroot_path + mod_file_subpath
-            vanilla_path = gameroot_path + mod_subpath
+    for filename in listdir(path.join(mod_root, current_root)):
+        mod_file_abs_path = path.join(mod_root, current_root, filename)
+        mod_file_subpath = path.join(current_root, filename)
+        vanilla_file_path = path.join(gameroot_path, mod_file_subpath)
+        vanilla_path = path.join(gameroot_path, current_root)
 
+        if (path.isfile(mod_file_abs_path)):
             if (path.islink(vanilla_file_path)):
                 print(f"File {filename} is already being symlinked, skipping backup, removing current link and replacing it")
-                system(f'rm "{vanilla_file_path}"')
-
+                subprocess.run(['rm', vanilla_file_path], check=True)
             elif (path.exists(vanilla_file_path)):
-                print("Backing up file " + vanilla_file_path)
-                #Backing up existing file
-                system(f'mkdir -p "{backup_path + mod_subpath}" && mv "{vanilla_file_path}" "{backup_path + mod_subpath}"')
+                print(f"Backing up file {vanilla_file_path}")
+                subprocess.run(['mkdir', '-p', path.join(backup_path, current_root)], check=True)
+                subprocess.run(['mv', vanilla_file_path, path.join(backup_path, current_root, filename)], check=True)
 
             print(f"Linking file {filename}...")
-            # Create folder if not exists and link new file
-            if (not path.exists(vanilla_path)): system(f'mkdir -p "{vanilla_path}"')
-            system(f'ln -s "{mod_file_abs_path}" "{vanilla_file_path}"')
+            if (not path.exists(vanilla_path)): 
+                subprocess.run(['mkdir', '-p', vanilla_path], check=True)
+            subprocess.run(['ln', '-s', mod_file_abs_path, vanilla_file_path], check=True)
         else:
             link_files_recursively(gameroot_path, backup_path, mod_root, mod_file_subpath)
 
@@ -69,66 +64,55 @@ def restore_files_recursively(gameroot_path, backup_path, mod_root, current_root
     @param mod_root: this is the mod folder path being unlinked
     @param current_root: this is the current subfolder of the mod being processed
     """
-    for filename in listdir(mod_root + current_root):
-        
-        mod_subpath = current_root + "/"
-        mod_file_subpath = mod_subpath + filename
-        mod_file_abs_path = mod_root + mod_file_subpath
-        
-        #print("Checking: ", mod_file_abs_path)
-        if (path.isfile(mod_file_abs_path)):
-            
-            vanilla_path = gameroot_path + mod_subpath
-            vanilla_file_path = gameroot_path + mod_file_subpath
-            backup_file_path = backup_path + mod_subpath + filename
+    for filename in listdir(path.join(mod_root, current_root)):
+        mod_file_abs_path = path.join(mod_root, current_root, filename)
+        vanilla_file_path = path.join(gameroot_path, current_root, filename)
+        vanilla_path = path.join(gameroot_path, current_root)
+        backup_file_path = path.join(backup_path, current_root, filename)
 
+        if (path.isfile(mod_file_abs_path)):
             if (path.islink(vanilla_file_path)):
                 print(f"Found symlink {filename}, removing it...")
-                system(f'rm "{vanilla_file_path}"')
+                subprocess.run(['rm', vanilla_file_path], check=True)
                 if (path.exists(backup_file_path)):
                     print(f"Found backup for {filename}, restoring it...")
-                    system(f'mv "{backup_file_path}" "{vanilla_path}"')
-                if (len(listdir(vanilla_path)) == 0): 
+                    subprocess.run(['mv', backup_file_path, vanilla_path], check=True)
+                if (not listdir(vanilla_path)): 
                     print(f"Removing empty mod directory {vanilla_path}...")
-                    system(f'rmdir "{vanilla_path}"')
+                    subprocess.run(['rmdir', vanilla_path], check=True)
             else:
                 print(f"File {filename} is already in its original state")
-
         else:
-            restore_files_recursively(gameroot_path, backup_path, mod_root, mod_file_subpath)
+            restore_files_recursively(gameroot_path, backup_path, mod_root, path.join(current_root, filename))
 
 def mod_symlinking_status(gameroot_path, backup_path, mod_root, current_root):
     """
     Returns the specified mod linking status
     @param gameroot_path: this is the original game folder path
     @param backup_path: this is the backup folder path where linked files are being copied
-    @param mod_root: this is the current mod being linked folder path
+    @param mod_root: this is the mod folder path being linked
     @param current_root: this is the current subfolder of the mod being checked for symlinking
-
-    @return: 0 if symlinking is enabled, 1 if disabled, 2 if disabled with of conflicting mods if enabled
+ 
+    @return: "enabled" if symlinking is enabled, "disabled" if disabled, conflicting_mod_name if disabled with conflicting mod enabled
     """
-    for filename in listdir(mod_root + current_root):
-            
-        mod_subpath = current_root + "/"
-        mod_file_subpath = mod_subpath + filename
-        mod_file_abs_path = mod_root + mod_file_subpath
-        
-        #print("Checking: ", mod_file_abs_path)
+    for filename in listdir(path.join(mod_root, current_root)):
+        mod_file_abs_path = path.join(mod_root, current_root, filename)
+        vanilla_file_path = path.join(gameroot_path, current_root, filename)
+
         if (path.isfile(mod_file_abs_path)):
-            
-            vanilla_file_path = gameroot_path + mod_file_subpath
-            
             if (path.islink(vanilla_file_path)):
                 if (readlink(vanilla_file_path).strip() == mod_file_abs_path.strip()):
-                    #print(f"File {filename} is already being symlinked, mod is symlinked")
-                    return 0
+                    return "enabled"
                 else:
-                    #print(f"File {filename} is already being symlinked, but not for mod {mod_root}")
-                    return 2
-            else: return 1
-                
-        else: return mod_symlinking_status(gameroot_path, backup_path, mod_root, mod_file_subpath)
-    
+                    # Removing mod subpath to find the conflicting mod currently linked
+                    mod_file_subpath = path.join(current_root, filename)
+                    conflicting_mod_name = path.basename(readlink(vanilla_file_path).strip().replace("/" + mod_file_subpath, ""))
+                    return conflicting_mod_name
+            else: 
+                return "disabled"
+        else: 
+            return mod_symlinking_status(gameroot_path, backup_path, mod_root, path.join(current_root, filename))
+
 def handle_current_games():
     """
     Lists the configured games, shows the mods' linking status and links or restores the selected mods
@@ -139,11 +123,8 @@ def handle_current_games():
         print("First you need to add games, then you can handle their mods")
         return
 
-    # Clearing screen
-    #system('clear')
-
     for (index, game) in zip(range(0, len(games_setup)), games_setup):
-        print(f"{index}: {game["name"]}")
+        print(f"{index}: {game['name']}")
 
     answer = input("Select which game to handle: ")
     print("\n")
@@ -151,22 +132,21 @@ def handle_current_games():
 
     gameroot_path = games_setup[index]["gameroot_path"]
     backup_path = games_setup[index]["backup_path"]
-    # Mods paths are read at runtime looking at current_link.json mods path
-    mods_paths = [games_setup[index]["mods_path"] + "/" + mod_name for mod_name in listdir(games_setup[index]["mods_path"])]
+    mods_paths = [path.join(games_setup[index]["mods_path"], mod_name) for mod_name in listdir(games_setup[index]["mods_path"])]
     mods_paths.sort()
-    
+
     # Clearing screen
-    system('clear')
-    
+    subprocess.run(['clear'], check=True)
+
     # Showing the mods status, if they're already linked or not
     for (index, mod_root) in zip(range(0, len(mods_paths)), mods_paths):
         symlink_status = mod_symlinking_status(gameroot_path, backup_path, mod_root, "")
-        if (symlink_status == 0): print(f"{index} {'✅'}: {mod_root.split("/")[-1]}")
-        elif (symlink_status == 1): print(f"{index} {'❌'}: {mod_root.split("/")[-1]}")
-        else: print(f"{index} {'❌'}: {mod_root.split("/")[-1]} - (WARNING - This disabled mod has some conflicting files with other enabled mods, enabling it will overwrite the previous linking)")
-    
+        if (symlink_status == "enabled"): print(f"{index} {'✅'}: {path.basename(mod_root)}")
+        elif (symlink_status == "disabled"): print(f"{index} {'❌'}: {path.basename(mod_root)}")
+        else: print(f"{index} {'❌'}: {path.basename(mod_root)} - (WARNING - This disabled mod has conflicting files with the enabled mod \"{symlink_status}\", enabling it will overwrite the previous linking)")
+
     answer = input("Select which mods to edit (example: 0 2 4, or -1 for all of them) and press Enter: ")
-    
+
     mods_indexes = [int(index) for index in answer.strip().split(" ")]
 
     answer = input("Should I (e)nable linking or (d)isable linking? e/d ")
@@ -200,13 +180,11 @@ def add_new_game():
     })
 
     base_path = path.dirname(path.abspath(sys.executable if getattr(sys, 'frozen', False) else __file__))
-    json_path = base_path + "/games_setup.json"
-    f = open(json_path, "w")
-    dump(games_setup, f, indent=4)
-    f.close()
+    json_path = path.join(base_path, "games_setup.json")
+    with open(json_path, "w") as f:
+        dump(games_setup, f, indent=4)
 
     print(f"Added {name} to games_setup.json")
-
 
 def main():
     """
@@ -218,7 +196,5 @@ def main():
         if (answer.strip() == 'h'): handle_current_games()
         if (answer.strip() == 'a'): add_new_game()
         if (answer.strip() == 'e'): break
-
-
 
 if (__name__ == '__main__'): main()
