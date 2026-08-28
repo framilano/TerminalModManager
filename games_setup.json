@@ -4,5 +4,11 @@
         "gameroot_path": "/home/francesco/Games/EmulationLibrary/ROMs/ps4/CUSA03173/dvdroot_ps4",
         "backup_path": "/home/francesco/Games/EmulationLibrary/ROMs/ps4/CUSA03173-backup",
         "mods_path": "/home/francesco/Games/EmulationLibrary/ROMs/ps4/CUSA03173-mods"
+    },
+    {
+        "name": "Grand Theft Auto 5 Mods",
+        "gameroot_path": "/home/francesco/Games/Faugus/epic-games/pfx/drive_c/Program Files/Epic Games/GTAVEnhanced",
+        "backup_path": "/home/francesco/Games/Mods/GrandTheftAutoVEnhanced/Backup",
+        "mods_path": "/home/francesco/Games/Mods/GrandTheftAutoVEnhanced/Mods"
     }
 ]

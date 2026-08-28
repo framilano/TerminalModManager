@@ -70,22 +70,29 @@ def restore_files_recursively(gameroot_path, backup_path, mod_root, current_root
         vanilla_path = path.join(gameroot_path, current_root)
         backup_file_path = path.join(backup_path, current_root, filename)
 
+        if (not path.exists(vanilla_path)):
+            print(f"Mod file or folder \"{filename}\" does not exist, skipping...")
+            continue
+
         if (path.isfile(mod_file_abs_path)):
+            
             if (path.islink(vanilla_file_path)):
                 print(f"Found symlink {filename}, removing it...")
                 subprocess.run(['rm', vanilla_file_path], check=True)
                 if (path.exists(backup_file_path)):
                     print(f"Found backup for {filename}, restoring it...")
                     subprocess.run(['mv', backup_file_path, vanilla_path], check=True)
-                if (not listdir(vanilla_path)): 
-                    print(f"Removing empty mod directory {vanilla_path}...")
-                    subprocess.run(['rmdir', vanilla_path], check=True)
             else:
                 print(f"File {filename} is already in its original state")
         else:
             restore_files_recursively(gameroot_path, backup_path, mod_root, path.join(current_root, filename))
+        
+        # Remove current directory if empty
+        if (not listdir(vanilla_path)): 
+            print(f"Removing empty mod directory {vanilla_path}...")
+            subprocess.run(['rmdir', vanilla_path], check=True)
 
-def mod_symlinking_status(gameroot_path, backup_path, mod_root, current_root):
+def mod_symlinking_status(gameroot_path, backup_path, mod_root, current_root, conflicting_mods):
     """
     Returns the specified mod linking status
     @param gameroot_path: this is the original game folder path
@@ -95,23 +102,28 @@ def mod_symlinking_status(gameroot_path, backup_path, mod_root, current_root):
  
     @return: "enabled" if symlinking is enabled, "disabled" if disabled, conflicting_mod_name if disabled with conflicting mod enabled
     """
+
+    disabled_status = "enabled"
     for filename in listdir(path.join(mod_root, current_root)):
         mod_file_abs_path = path.join(mod_root, current_root, filename)
         vanilla_file_path = path.join(gameroot_path, current_root, filename)
 
         if (path.isfile(mod_file_abs_path)):
             if (path.islink(vanilla_file_path)):
-                if (readlink(vanilla_file_path).strip() == mod_file_abs_path.strip()):
-                    return "enabled"
-                else:
+                if (readlink(vanilla_file_path).strip() != mod_file_abs_path.strip()):
                     # Removing mod subpath to find the conflicting mod currently linked
                     mod_file_subpath = path.join(current_root, filename)
+                    # We append if not already present the name of the conflicting_mod to the conflicting_mods list
                     conflicting_mod_name = path.basename(readlink(vanilla_file_path).strip().replace("/" + mod_file_subpath, ""))
-                    return conflicting_mod_name
+                    if (conflicting_mod_name not in conflicting_mods): conflicting_mods.append(conflicting_mod_name)
+                    disabled_status = "disabled"
             else: 
-                return "disabled"
+                disabled_status = "disabled"
         else: 
-            return mod_symlinking_status(gameroot_path, backup_path, mod_root, path.join(current_root, filename))
+            disabled_status = mod_symlinking_status(gameroot_path, backup_path, mod_root, path.join(current_root, filename), conflicting_mods)
+        
+    return disabled_status
+
 
 def handle_current_games():
     """
@@ -140,10 +152,11 @@ def handle_current_games():
 
     # Showing the mods status, if they're already linked or not
     for (index, mod_root) in zip(range(0, len(mods_paths)), mods_paths):
-        symlink_status = mod_symlinking_status(gameroot_path, backup_path, mod_root, "")
+        conflicting_mods = []
+        symlink_status = mod_symlinking_status(gameroot_path, backup_path, mod_root, "", conflicting_mods)
         if (symlink_status == "enabled"): print(f"{index} {'✅'}: {path.basename(mod_root)}")
-        elif (symlink_status == "disabled"): print(f"{index} {'❌'}: {path.basename(mod_root)}")
-        else: print(f"{index} {'❌'}: {path.basename(mod_root)} - (WARNING - This disabled mod has conflicting files with the enabled mod \"{symlink_status}\", enabling it will overwrite the previous linking)")
+        if (symlink_status == "disabled"): print(f"{index} {'❌'}: {path.basename(mod_root)}")
+        if (len(conflicting_mods) > 0): print(f"      └── WARNING - This disabled mod has conflicting files with {conflicting_mods}, enabling it will override their symlinkings")
 
     answer = input("Select which mods to edit (example: 0 2 4, or -1 for all of them) and press Enter: ")
 
